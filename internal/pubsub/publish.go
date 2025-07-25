@@ -14,7 +14,7 @@ func PublishJSON[T any](ch *amqp.Channel, exchange, key string, val T) error {
 	**/
 	valBytes, err := json.Marshal(val)
 	if err != nil {
-		log.Fatalf("Cannot marshal %s", val)
+		log.Fatalf("Cannot marshal %v", val)
 		return err
 	}
 	msg := amqp.Publishing{
