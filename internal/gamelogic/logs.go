@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/bootdotdev/learn-pub-sub-starter/internal/routing"
+	"github.com/justinyeh1995/learn-pub-sub-starter/internal/routing"
 )
 
 const logsFile = "game.log"
