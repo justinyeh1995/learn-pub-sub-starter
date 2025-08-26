@@ -3,6 +3,7 @@ package pubsub
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -25,4 +26,42 @@ func PublishJSON[T any](ch *amqp.Channel, exchange, key string, val T) error {
 	ch.PublishWithContext(ctx, exchange, key, false, false, msg)
 
 	return nil
+}
+
+// The closet way to do enum in go
+type simpleQueueType string
+
+const (
+	Durable   simpleQueueType = "durable"
+	Transient simpleQueueType = "transient"
+)
+
+func DeclareAndBind(
+	conn *amqp.Connection,
+	exchange,
+	queueName,
+	key string,
+	queueType simpleQueueType, // an enum to represent "durable" or "transient"
+) (*amqp.Channel, amqp.Queue, error) {
+	ch, err := conn.Channel()
+	if err != nil {
+		return nil, amqp.Queue{}, fmt.Errorf("%w", err)
+	}
+
+	q, err := ch.QueueDeclare(
+		queueName,
+		queueType == Durable,
+		queueType == Transient,
+		queueType == Transient,
+		false,
+		nil)
+	if err != nil {
+		return nil, amqp.Queue{}, fmt.Errorf("%w", err)
+	}
+
+	if err := ch.QueueBind(queueName, key, exchange, false, nil); err != nil {
+		return nil, amqp.Queue{}, fmt.Errorf("%w", err)
+	}
+
+	return ch, q, nil
 }
