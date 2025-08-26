@@ -36,7 +36,7 @@ func main() {
 		pubsub.Transient,
 	)
 	if err != nil {
-		log.Panicf("Unable to establish a channel. %w", err)
+		log.Panicf("Unable to establish a channel. %v", err)
 	}
 	fmt.Printf("Queue %v declared and bound!\n", queue.Name)
 
