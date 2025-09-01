@@ -3,9 +3,8 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
-	"os/signal"
 
+	"github.com/justinyeh1995/learn-pub-sub-starter/internal/gamelogic"
 	"github.com/justinyeh1995/learn-pub-sub-starter/internal/pubsub"
 	"github.com/justinyeh1995/learn-pub-sub-starter/internal/routing"
 
@@ -28,15 +27,55 @@ func main() {
 		log.Panicf("Unable to establish a channel.")
 	}
 
-	data := routing.PlayingState{
-		IsPaused: true,
-	}
-	pubsub.PublishJSON(ch, routing.ExchangePerilDirect, routing.PauseKey, data)
-	// How do you wait for a signal in go?
-	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, os.Interrupt)
+	gamelogic.PrintServerHelp()
 
-	// Block until a signal is received.
-	s := <-signalChan
-	fmt.Println("Got signal:", s)
+	for {
+		words := gamelogic.GetInput()
+		if len(words) == 0 {
+			continue
+		}
+		switch words[0] {
+		case "pause":
+			log.Print("Pausing")
+			data := routing.PlayingState{
+				IsPaused: true,
+			}
+			err := pubsub.PublishJSON(
+				ch,
+				routing.ExchangePerilDirect,
+				routing.PauseKey,
+				data,
+			)
+			if err != nil {
+				log.Printf("Could not publish time: %v", err)
+			}
+		case "resume":
+			log.Print("Resuming")
+			data := routing.PlayingState{
+				IsPaused: false,
+			}
+			err = pubsub.PublishJSON(
+				ch,
+				routing.ExchangePerilDirect,
+				routing.PauseKey,
+				data,
+			)
+			if err != nil {
+				log.Printf("Could not publish time: %v", err)
+			}
+		case "quit":
+			log.Print("Quitting")
+			return
+		default:
+			log.Print("Invalid command")
+		}
+	}
+
+	// How do you wait for a signal in go?
+	// signalChan := make(chan os.Signal, 1)
+	// signal.Notify(signalChan, os.Interrupt)
+
+	// // Block until a signal is received.
+	// s := <-signalChan
+	// fmt.Println("Got signal:", s)
 }
