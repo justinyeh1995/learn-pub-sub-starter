@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
-	"os/signal"
 
 	gamelogic "github.com/justinyeh1995/learn-pub-sub-starter/internal/gamelogic"
 	pubsub "github.com/justinyeh1995/learn-pub-sub-starter/internal/pubsub"
@@ -40,10 +38,47 @@ func main() {
 	}
 	fmt.Printf("Queue %v declared and bound!\n", queue.Name)
 
-	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, os.Interrupt)
+	// create a new game state
+	newGameState := gamelogic.NewGameState(username)
 
-	// Block until a signal is received.
-	s := <-signalChan
-	log.Println("Got signal:", s)
+	//REPL loop
+	for {
+		words := gamelogic.GetInput()
+		if len(words) == 0 {
+			continue
+		}
+		switch words[0] {
+		case "spawn":
+			log.Print("Spawning")
+			err := newGameState.CommandSpawn(words)
+			if err != nil {
+				log.Printf("Could not spawn new command")
+			}
+		case "move":
+			log.Print("Moving")
+			move, err := newGameState.CommandMove(words)
+			log.Printf("move: %v", move)
+			if err != nil {
+				log.Printf("Could not publish time: %v", err)
+			}
+		case "status":
+			log.Print("Status")
+			newGameState.CommandStatus()
+		case "help":
+			gamelogic.PrintServerHelp()
+		case "spam":
+			log.Println("Spamming not allowed yet!")
+		case "quit":
+			gamelogic.PrintQuit()
+		default:
+			log.Print("Invalid command")
+		}
+	}
+
+	// signalChan := make(chan os.Signal, 1)
+	// signal.Notify(signalChan, os.Interrupt)
+
+	// // Block until a signal is received.
+	// s := <-signalChan
+	// log.Println("Got signal:", s)
 }
