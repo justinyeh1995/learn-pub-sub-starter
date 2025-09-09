@@ -22,10 +22,22 @@ func main() {
 	defer conn.Close()
 	fmt.Println("Connection Succeeds")
 
-	ch, err := conn.Channel()
+	publishCh, err := conn.Channel()
 	if err != nil {
-		log.Panicf("Unable to establish a channel.")
+		log.Fatalf("could not create channel: %v", err)
 	}
+
+	_, queue, err := pubsub.DeclareAndBind(
+		conn,
+		routing.ExchangePerilTopic,
+		routing.GameLogSlug,
+		"game_logs.*",
+		pubsub.Durable,
+	)
+	if err != nil {
+		log.Fatalf("Cannot bind to queue. Error Message: %v", err)
+	}
+	fmt.Printf("Queue %v declared and bound!\n", queue.Name)
 
 	gamelogic.PrintServerHelp()
 
@@ -41,7 +53,7 @@ func main() {
 				IsPaused: true,
 			}
 			err := pubsub.PublishJSON(
-				ch,
+				publishCh,
 				routing.ExchangePerilDirect,
 				routing.PauseKey,
 				data,
@@ -55,7 +67,7 @@ func main() {
 				IsPaused: false,
 			}
 			err = pubsub.PublishJSON(
-				ch,
+				publishCh,
 				routing.ExchangePerilDirect,
 				routing.PauseKey,
 				data,
