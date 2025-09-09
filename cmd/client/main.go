@@ -70,6 +70,7 @@ func main() {
 			log.Println("Spamming not allowed yet!")
 		case "quit":
 			gamelogic.PrintQuit()
+			return
 		default:
 			log.Print("Invalid command")
 		}
