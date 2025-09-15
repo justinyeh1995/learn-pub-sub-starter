@@ -40,7 +40,14 @@ func main() {
 
 	// create a new game state
 	newGameState := gamelogic.NewGameState(username)
-
+	pubsub.SubscribeJSON(
+		conn,
+		routing.ExchangePerilDirect,
+		routing.PauseKey+"."+newGameState.GetUsername(),
+		routing.PauseKey,
+		pubsub.Transient,
+		handlerPause(newGameState),
+	)
 	//REPL loop
 	for {
 		words := gamelogic.GetInput()

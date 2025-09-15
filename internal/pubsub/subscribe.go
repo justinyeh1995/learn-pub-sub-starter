@@ -15,7 +15,7 @@ func SubscribeJSON[T any](
 	queueType SimpleQueueType, // an enum to represent "durable" or "transient"
 	handler func(T),
 ) error {
-	ch, _, err := DeclareAndBind(
+	ch, queue, err := DeclareAndBind(
 		conn,
 		exchange,
 		queueName,
@@ -27,19 +27,20 @@ func SubscribeJSON[T any](
 		return err
 	}
 	deliveries, err := ch.Consume(
-		queueName,
-		"",
-		false,
-		false,
-		false,
-		false,
-		nil,
+		queue.Name, // queue
+		"",         // consumer
+		false,      // auto-ack
+		false,      // exclusive
+		false,      // no-local
+		false,      // no-wait
+		nil,        // args
 	)
 	if err != nil {
 		log.Printf("Cannot create a amqp.Delivery", err)
 		return err
 	}
 	go func() {
+		defer ch.Close()
 		// Range over the channel
 		for delivery := range deliveries {
 			// io.ReadAll(body)
