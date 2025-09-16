@@ -21,26 +21,32 @@ func main() {
 	defer conn.Close()
 	log.Println("Connection Succeeds")
 
+	publishCh, err := conn.Channel()
+	if err != nil {
+		log.Fatalf("could not create channel: %v", err)
+	}
+
 	username, err := gamelogic.ClientWelcome()
 	if err != nil {
 		log.Panic(err)
 	}
-	queueName := fmt.Sprintf("%s.%s", routing.PauseKey, username)
-	_, queue, err := pubsub.DeclareAndBind(
-		conn,
-		routing.ExchangePerilDirect,
-		queueName,
-		routing.PauseKey,
-		pubsub.Transient,
-	)
-	if err != nil {
-		log.Panicf("Unable to establish a channel. %v", err)
-	}
-	fmt.Printf("Queue %v declared and bound!\n", queue.Name)
+	// queueName := fmt.Sprintf("%s.%s", routing.PauseKey, username)
+	// ch, queue, err := pubsub.DeclareAndBind(
+	// 	conn,
+	// 	routing.ExchangePerilDirect,
+	// 	queueName,
+	// 	routing.PauseKey,
+	// 	pubsub.Transient,
+	// )
+	// if err != nil {
+	// 	log.Panicf("Unable to establish a channel. %v", err)
+	// }
+	// fmt.Printf("Queue %v declared and bound!\n", queue.Name)
 
 	// create a new game state
 	newGameState := gamelogic.NewGameState(username)
-	pubsub.SubscribeJSON(
+	// subscribe to pause
+	err = pubsub.SubscribeJSON(
 		conn,
 		routing.ExchangePerilDirect,
 		routing.PauseKey+"."+newGameState.GetUsername(),
@@ -48,6 +54,21 @@ func main() {
 		pubsub.Transient,
 		handlerPause(newGameState),
 	)
+	if err != nil {
+		log.Fatalf("could not subscribe to pause: %v", err)
+	}
+	// subscribe to move
+	err = pubsub.SubscribeJSON(
+		conn,
+		routing.ExchangePerilTopic,
+		routing.ArmyMovesPrefix+"."+newGameState.GetUsername(),
+		routing.ArmyMovesPrefix+".*",
+		pubsub.Transient,
+		handlerMove(newGameState),
+	)
+	if err != nil {
+		log.Fatalf("could not subscribe to army moves: %v", err)
+	}
 	//REPL loop
 	for {
 		words := gamelogic.GetInput()
@@ -68,6 +89,17 @@ func main() {
 			if err != nil {
 				log.Printf("Could not publish time: %v", err)
 			}
+			err = pubsub.PublishJSON(
+				publishCh,
+				routing.ExchangePerilTopic,
+				"army_moves"+"."+newGameState.GetUsername(),
+				move,
+			)
+			if err != nil {
+				fmt.Printf("error: %s\n", err)
+				continue
+			}
+			log.Printf("The move was published successfully.")
 		case "status":
 			log.Print("Status")
 			newGameState.CommandStatus()
