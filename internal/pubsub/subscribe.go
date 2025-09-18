@@ -31,7 +31,7 @@ func SubscribeJSON[T any](
 		queueType,
 	)
 	if err != nil {
-		log.Printf("Cannot declare a binding to the queue", err)
+		log.Printf("Cannot declare a binding to the queue %v", err)
 		return err
 	}
 	deliveries, err := ch.Consume(
