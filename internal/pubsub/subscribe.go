@@ -7,13 +7,21 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
+type AckType int
+
+const (
+	Ack AckType = iota
+	NackRequeue
+	NackDiscard
+)
+
 func SubscribeJSON[T any](
 	conn *amqp.Connection,
 	exchange,
 	queueName,
 	key string,
 	queueType SimpleQueueType, // an enum to represent "durable" or "transient"
-	handler func(T),
+	handler func(T) AckType,
 ) error {
 	ch, queue, err := DeclareAndBind(
 		conn,
@@ -36,7 +44,7 @@ func SubscribeJSON[T any](
 		nil,        // args
 	)
 	if err != nil {
-		log.Printf("Cannot create a amqp.Delivery", err)
+		log.Printf("Cannot create a amqp.Delivery %v", err)
 		return err
 	}
 	go func() {
@@ -50,9 +58,19 @@ func SubscribeJSON[T any](
 			if err := json.Unmarshal(body, &data); err != nil {
 				return
 			}
-			handler(data)
-			// Acknowledge the message with delivery.Ack(false) to remove it from the queue
-			delivery.Ack(false)
+			ackType := handler(data)
+			// Depending on the returned "ackType", call the appropriate acknowledgment method.
+			switch ackType {
+			case Ack:
+				log.Println("Ack")
+				delivery.Ack(false)
+			case NackRequeue:
+				log.Println("NackRequeue")
+				delivery.Nack(false, true)
+			case NackDiscard:
+				log.Println("NackDiscard")
+				delivery.Nack(false, false)
+			}
 		}
 	}()
 	return nil
