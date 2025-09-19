@@ -64,10 +64,22 @@ func main() {
 		routing.ArmyMovesPrefix+"."+newGameState.GetUsername(),
 		routing.ArmyMovesPrefix+".*",
 		pubsub.Transient,
-		handlerMove(newGameState),
+		handlerMove(newGameState, publishCh),
 	)
 	if err != nil {
 		log.Fatalf("could not subscribe to army moves: %v", err)
+	}
+	// subscribe to war
+	err = pubsub.SubscribeJSON(
+		conn,
+		routing.ExchangePerilTopic,
+		routing.WarRecognitionsPrefix,
+		routing.WarRecognitionsPrefix+".*", // Got this step wrong initally, shows that i am not aware of what key does
+		pubsub.Durable,
+		handlerWar(newGameState),
+	)
+	if err != nil {
+		log.Fatalf("could not subscribe to wars: %v", err)
 	}
 	//REPL loop
 	for {
