@@ -31,7 +31,7 @@ func main() {
 		conn,
 		routing.ExchangePerilTopic,
 		routing.GameLogSlug,
-		"game_logs.*",
+		routing.GameLogSlug+".*",
 		pubsub.Durable,
 	)
 	if err != nil {
