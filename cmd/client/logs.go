@@ -1,23 +1,26 @@
 package main
 
 import (
-	gamelogic "github.com/justinyeh1995/learn-pub-sub-starter/internal/gamelogic"
+	"time"
+
 	"github.com/justinyeh1995/learn-pub-sub-starter/internal/pubsub"
 	"github.com/justinyeh1995/learn-pub-sub-starter/internal/routing"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-func PublishLog(
-	rec gamelogic.RecognitionOfWar,
-	gs *gamelogic.GameState,
+func PublishGameLog(
 	ch *amqp.Channel,
-	log routing.GameLog,
+	username, msg string,
 ) error {
 	err := pubsub.PublishGob(
 		ch,
 		routing.ExchangePerilTopic,
-		routing.GameLogSlug+"."+rec.Attacker.Username,
-		log,
+		routing.GameLogSlug+"."+username,
+		routing.GameLog{
+			Username:    username,
+			CurrentTime: time.Now(),
+			Message:     msg,
+		},
 	)
 	if err != nil {
 		return err

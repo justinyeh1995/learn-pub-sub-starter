@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"time"
 
 	gamelogic "github.com/justinyeh1995/learn-pub-sub-starter/internal/gamelogic"
 	"github.com/justinyeh1995/learn-pub-sub-starter/internal/pubsub"
@@ -49,49 +48,51 @@ func handlerMove(gs *gamelogic.GameState, ch *amqp.Channel) func(gamelogic.ArmyM
 	}
 }
 
-func handlerWar(gs *gamelogic.GameState, ch *amqp.Channel) func(gamelogic.RecognitionOfWar) pubsub.AckType {
-	return func(rec gamelogic.RecognitionOfWar) pubsub.AckType {
+func handlerWar(gs *gamelogic.GameState, publishCh *amqp.Channel) func(dw gamelogic.RecognitionOfWar) pubsub.AckType {
+	return func(dw gamelogic.RecognitionOfWar) pubsub.AckType {
 		defer fmt.Print("> ")
-
-		outcome, winner, loser := gs.HandleWar(rec)
-		switch outcome {
+		warOutcome, winner, loser := gs.HandleWar(dw)
+		switch warOutcome {
 		case gamelogic.WarOutcomeNotInvolved:
 			return pubsub.NackRequeue
 		case gamelogic.WarOutcomeNoUnits:
 			return pubsub.NackDiscard
-		case gamelogic.WarOutcomeOpponentWon, gamelogic.WarOutcomeYouWon:
-			log := fmt.Sprintf("%s won a war against %s", winner, loser)
-			err := PublishLog(
-				rec,
-				gs,
-				ch,
-				routing.GameLog{
-					CurrentTime: time.Now(),
-					Message:     log,
-					Username:    gs.GetUsername(),
-				})
+		case gamelogic.WarOutcomeOpponentWon:
+			err := PublishGameLog(
+				publishCh,
+				gs.GetUsername(),
+				fmt.Sprintf("%s won a war against %s", winner, loser),
+			)
 			if err != nil {
+				fmt.Printf("error: %s\n", err)
+				return pubsub.NackRequeue
+			}
+			return pubsub.Ack
+		case gamelogic.WarOutcomeYouWon:
+			err := PublishGameLog(
+				publishCh,
+				gs.GetUsername(),
+				fmt.Sprintf("%s won a war against %s", winner, loser),
+			)
+			if err != nil {
+				fmt.Printf("error: %s\n", err)
 				return pubsub.NackRequeue
 			}
 			return pubsub.Ack
 		case gamelogic.WarOutcomeDraw:
-			log := fmt.Sprintf("A war between %s and %s resulted in a draw", winner, loser)
-			err := PublishLog(
-				rec,
-				gs,
-				ch,
-				routing.GameLog{
-					CurrentTime: time.Now(),
-					Message:     log,
-					Username:    gs.GetUsername(),
-				})
+			err := PublishGameLog(
+				publishCh,
+				gs.GetUsername(),
+				fmt.Sprintf("A war between %s and %s resulted in a draw", winner, loser),
+			)
 			if err != nil {
+				fmt.Printf("error: %s\n", err)
 				return pubsub.NackRequeue
 			}
 			return pubsub.Ack
-		default:
-			fmt.Println("Error")
-			return pubsub.NackDiscard
 		}
+
+		fmt.Println("error: unknown war outcome")
+		return pubsub.NackDiscard
 	}
 }
