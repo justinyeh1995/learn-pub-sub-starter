@@ -76,7 +76,7 @@ func main() {
 		routing.WarRecognitionsPrefix,
 		routing.WarRecognitionsPrefix+".*", // Got this step wrong initally, shows that i am not aware of what key does
 		pubsub.Durable,
-		handlerWar(newGameState),
+		handlerWar(newGameState, publishCh),
 	)
 	if err != nil {
 		log.Fatalf("could not subscribe to wars: %v", err)
