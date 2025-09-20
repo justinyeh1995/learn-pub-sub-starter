@@ -73,7 +73,7 @@ func main() {
 	err = pubsub.SubscribeJSON(
 		conn,
 		routing.ExchangePerilTopic,
-		routing.WarRecognitionsPrefix,
+		routing.WarRecognitionsPrefix+"."+newGameState.GetUsername(),
 		routing.WarRecognitionsPrefix+".*", // Got this step wrong initally, shows that i am not aware of what key does
 		pubsub.Durable,
 		handlerWar(newGameState, publishCh),
