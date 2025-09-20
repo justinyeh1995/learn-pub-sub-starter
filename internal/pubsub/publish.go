@@ -25,9 +25,7 @@ func PublishJSON[T any](ch *amqp.Channel, exchange, key string, val T) error {
 		Body:        valBytes,
 	}
 	ctx := context.Background()
-	ch.PublishWithContext(ctx, exchange, key, false, false, msg)
-
-	return nil
+	return ch.PublishWithContext(ctx, exchange, key, false, false, msg)
 }
 
 func PublishGob[T any](ch *amqp.Channel, exchange, key string, val T) error {
@@ -44,9 +42,7 @@ func PublishGob[T any](ch *amqp.Channel, exchange, key string, val T) error {
 		Body:        valBytes,
 	}
 	ctx := context.Background()
-	ch.PublishWithContext(ctx, exchange, key, false, false, msg)
-
-	return nil
+	return ch.PublishWithContext(ctx, exchange, key, false, false, msg)
 }
 
 // The closet way to do enum in go
@@ -72,8 +68,8 @@ func DeclareAndBind(
 	q, err := ch.QueueDeclare(
 		queueName,
 		queueType == Durable,
-		queueType == Transient,
-		queueType == Transient,
+		queueType != Durable,
+		queueType != Durable,
 		false,
 		amqp.Table{
 			"x-dead-letter-exchange": "peril_dlx",
@@ -82,7 +78,12 @@ func DeclareAndBind(
 		return nil, amqp.Queue{}, fmt.Errorf("%w", err)
 	}
 
-	if err := ch.QueueBind(q.Name, key, exchange, false, nil); err != nil {
+	if err := ch.QueueBind(
+		q.Name,
+		key,
+		exchange,
+		false,
+		nil); err != nil {
 		return nil, amqp.Queue{}, fmt.Errorf("%w", err)
 	}
 
