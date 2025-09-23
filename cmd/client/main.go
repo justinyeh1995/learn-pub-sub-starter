@@ -121,24 +121,24 @@ func main() {
 			gamelogic.PrintServerHelp()
 		case "spam":
 			log.Println("Spamming!")
-			if len(words) < 1 {
+			if len(words) < 2 {
 				continue
 			}
 			num, err := strconv.Atoi(words[1])
 			if err != nil {
 				log.Printf("Error converting string to integer, %v", err)
+				continue
 			}
 			for i := 0; i < num; i++ {
-				ml := gamelogic.GetMaliciousLog()
-				uname := newGameState.GetUsername()
-				err := pubsub.PublishJSON(
+				msg := gamelogic.GetMaliciousLog()
+				err := pubsub.PublishGob(
 					publishCh,
 					routing.ExchangePerilTopic,
-					routing.GameLogSlug+"."+uname,
+					routing.GameLogSlug+"."+username,
 					routing.GameLog{
 						CurrentTime: time.Now(),
-						Message:     ml,
-						Username:    uname,
+						Message:     msg,
+						Username:    username,
 					},
 				)
 				if err != nil {
