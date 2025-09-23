@@ -91,6 +91,13 @@ func subscribe[T any](
 		log.Printf("Cannot declare a binding to the queue %v", err)
 		return err
 	}
+
+	err = ch.Qos(10, 0, false)
+	if err != nil {
+		log.Printf("Cannot set QoS, %v", err)
+		return err
+	}
+
 	deliveries, err := ch.Consume(
 		queue.Name, // queue
 		"",         // consumer
